@@ -19,7 +19,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
+import static com.kata.bankaccount.dto.OperationType.WITHDRAWAL;
+import static com.kata.bankaccount.entity.AccountOperationStatus.OPERATION_SUCCESSFUL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.Assert.assertFalse;
@@ -44,7 +47,7 @@ class BankAccountApplicationTests {
         AccountOperationsDto withdrawalOperation = AccountOperationsDto.builder()
                 .accountId(1l)
                 .amount(50l)
-                .operationType(OperationType.WITHDRAWAL)
+                .operationType(WITHDRAWAL)
                 .timestamp(new Date())
                 .build();
         //When
@@ -62,19 +65,27 @@ class BankAccountApplicationTests {
                 .id(1l)
                 .build();
         accountRepository.save(account);
+        Date withdrawalTime = new Date();
         AccountOperationsDto withdrawalOperation = AccountOperationsDto.builder()
                 .accountId(1l)
                 .amount(50l)
-                .operationType(OperationType.WITHDRAWAL)
-                .timestamp(new Date())
+                .operationType(WITHDRAWAL)
+                .timestamp(withdrawalTime)
                 .build();
         //When
         accountOperationsService.executeOperation(withdrawalOperation);
         List<OperationEntity> accountOperations = operationRepository.findAll();
+        Optional<AccountEntity> updateAccount = accountRepository.findById(1l);
 
         //Then
         assertFalse(accountOperations.isEmpty());
         Assert.assertEquals(accountOperations.size(), 1);
+        OperationEntity savedWithdrawalOperation = accountOperations.stream().findFirst().get();
+        Assert.assertEquals(savedWithdrawalOperation.getOperationType(), WITHDRAWAL.name());
+        Assert.assertEquals(savedWithdrawalOperation.getStatus(), OPERATION_SUCCESSFUL.name());
+        Assert.assertEquals(savedWithdrawalOperation.getAmount().longValue(), 50l);
+        Assert.assertEquals(savedWithdrawalOperation.getTimestamp().toInstant(), withdrawalTime.toInstant());
+        Assert.assertEquals(updateAccount.get().getBalance().longValue(), 950l);
     }
 
     @Test
@@ -88,7 +99,7 @@ class BankAccountApplicationTests {
         AccountOperationsDto withdrawalOperation = AccountOperationsDto.builder()
                 .accountId(1l)
                 .amount(50l)
-                .operationType(OperationType.WITHDRAWAL)
+                .operationType(WITHDRAWAL)
                 .timestamp(new Date())
                 .build();
         //When
